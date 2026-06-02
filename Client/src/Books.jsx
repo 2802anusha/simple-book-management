@@ -1,74 +1,132 @@
-// Books.js
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useState } from 'react'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
+import axios from 'axios'
 
 const Books = () => {
-    const [books, setBooks] = useState([]);
-    const navigate = useNavigate();
 
-    const handleUpdate = (book) => {
-        navigate('/update', { state: { book } });
-    };
+  // ✅ state
+  const [books, setBooks] = useState([])
+  const [searchTerm, setSearchTerm] = useState("")
+  const navigate = useNavigate()
+  const location = useLocation()
 
-    const handleDelete = (bookId) => {
-        axios.delete(`http://localhost:5000/delete/${bookId}`)
-            .then(() => {
-                setBooks(books.filter(book => book.id !== bookId));
-            })
-            .catch(err => console.log(err));
-    };
+  // ✅ fetch books function
+  const fetchBooks = () => {
+    const token = localStorage.getItem("token")
 
-    useEffect(() => {
-        axios.get('http://localhost:5000')
-            .then(res => {
-                if (Array.isArray(res.data)) {
-                    setBooks(res.data);
-                } else {
-                    console.error('Expected an array but got:', res.data);
-                }
-            })
-            .catch(err => console.log(err));
-    }, []);
+    // 🔒 If no token → login
+    if (!token) {
+      navigate("/login")
+      return
+    }
 
-    return (
-        <div className='container'>
-            <Link to='/create' className='btn btn-success'>Create Link</Link>
-            {books.length !== 0 ?
-                <table className="table">
-                    <thead>
-                        <tr>
-                            <th scope='col'>Publisher</th>
-                            <th scope='col'>Book</th>
-                            <th scope='col'>Date</th>
-                            <th scope='col'>cost</th>
-                            <th scope='col'>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {books.map(book =>
-                            <tr key={book.id}>
-                                <td>{book.publisher}</td>
-                                <td>{book.name}</td>
-                                <td>{book.date}</td>
-                                <td>{book.cost}</td>
-                                <td>
-                                    <button className="btn btn-primary" onClick={() => handleUpdate(book)}>
-                                        Update
-                                    </button>
-                                    <button className="btn btn-danger ms-2" onClick={() => handleDelete(book.id)}>
-                                        Delete
-                                    </button>
-                                </td>
-                            </tr>
-                        )}
-                    </tbody>
-                </table>
-                : <h2>No records</h2>
-            }
-        </div>
-    );
+    axios.get("http://localhost:5000/", {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(res => setBooks(res.data))
+      .catch(err => {
+        console.log(err)
+        localStorage.removeItem("token")
+        navigate("/login")
+      })
+  }
+
+  // ✅ Step 3 — FIXED useEffect (VERY IMPORTANT)
+  useEffect(() => {
+    fetchBooks()
+  }, [location.pathname])
+
+  // ✅ Update navigation
+  const handleUpdate = (book) => {
+    navigate('/update', { state: { book } })
+  }
+
+  // ✅ Delete book
+  const handleDelete = (id) => {
+    const token = localStorage.getItem("token")
+
+    axios.delete(`http://localhost:5000/delete/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+      .then(() => {
+        setBooks(prev => prev.filter(book => book.id !== id))
+      })
+      .catch(err => console.log(err))
+  }
+
+  // ✅ Safe filter
+  const filteredBooks = books.filter(book =>
+    book.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  return (
+    <div className="container mt-4">
+
+      <h2 className="text-center mb-4">Book Management System</h2>
+
+      <div className="d-flex justify-content-between mb-3">
+        <Link to="/create" className="btn btn-success">
+          Add Book
+        </Link>
+
+        <input
+          type="text"
+          className="form-control w-25"
+          placeholder="Search by book name..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+
+      {filteredBooks.length > 0 ? (
+        <table className="table table-bordered">
+          <thead>
+            <tr>
+              <th>Publisher</th>
+              <th>Book Name</th>
+              <th>Edition</th>
+              <th>Date</th>
+              <th>Cost</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            {filteredBooks.map(book => (
+              <tr key={book.id}>
+                <td>{book.publisher}</td>
+                <td>{book.name}</td>
+                <td>{book.edition}</td>
+                <td>{book.date?.split("T")[0]}</td>
+                <td>{book.cost}</td>
+                <td>
+                  <button
+                    className="btn btn-primary btn-sm"
+                    onClick={() => handleUpdate(book)}
+                  >
+                    Update
+                  </button>
+
+                  <button
+                    className="btn btn-danger btn-sm ms-2"
+                    onClick={() => handleDelete(book.id)}
+                  >
+                    Delete
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      ) : (
+        <h4 className="text-center">No records found</h4>
+      )}
+    </div>
+  )
 }
 
-export default Books;
+export default Books

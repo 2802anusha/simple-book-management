@@ -1,20 +1,25 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Books from './Books';
-import CreateBook from './CreateBook'; 
-import UpdateBook from './UpdateBook';
-import Nav from './Nav';
+import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import Books from './Books'
+import CreateBook from './CreateBook'
+import UpdateBook from './UpdateBook'
+import Nav from './Nav'
+import Login from './Login'
+import Register from "./Register";
 
 function App() {
   return (
     <BrowserRouter>
-    <Nav />
+      <Nav />
+
       <Routes>
-      <Route path="/" element={<Books />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/" element={<Books />} />
         <Route path="/create" element={<CreateBook />} />
-        <Route path="/update" element={<UpdateBook />} state={{ book: null }} />
+        <Route path="/update" element={<UpdateBook />} />
+        <Route path="/register" element={<Register />} />
       </Routes>
     </BrowserRouter>
-  );
+  )
 }
 
-export default App;
+export default App
